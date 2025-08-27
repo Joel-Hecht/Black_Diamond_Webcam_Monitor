@@ -9,9 +9,33 @@
 
 			<!--<div id="menu" style="position: absolute; top: 0; width: 100%; background-color: #FFFFFF;"> -->
 			<div id="menu" style="width: 100%; background-color: #FFFFFF;">
+				<div class="dateradio">
+					<label>
+						<input type="radio" name="date" value="recent"  > Use most recent images
+					</label><br>
+
+					<label>
+						<input type="radio" name="date" value="date" checked="checked" > Select date(s) to display 
+					</label><br>
+				</div>
+
+				<div id="datespecific" style="display: none;">
+					<br>
+					<label for="startdate"> Start Date: </label>
+					<input type="date" id="startdate" name="start" min="2025-05-26" />
+					<br>
+					<label for="enddate"> End Date: </label>
+					<input type="date" id="enddate" name="end" min="2025-05-26" />
+					<br>
+
+					<button type=button id="dateloadbtn" style="width: 250px; height: 50px; font-size: 20px;"> Load Selection </button>
+				</div>
+
 				<div class="slidecontainer" >
+					<div id="minutesago">
 					<p>Current: <span id="stext"></span> </p>
-          
+          			</div>
+
 					<p>Timestamp (MDT): <span id="timetxt"></span></p>
 
 					<div style="display: inline;">
@@ -40,7 +64,31 @@
 			var images = [];
 			var data = [];
 
+			// allow view to shift when radio button value is changed
+			const radioButtons = document.querySelectorAll('input[name="date"]');
+			radioButtons.forEach( radio => {
+				radio.addEventListener('change', function() {
+					var selected = this.value;
+					changeMode(selected);	
+				});
+			});
+
 			slider.oninput = recalculateSlider;
+
+			function changeMode(value) {
+				if (value === "recent") {
+					hideElement("datespecific");
+					showElement("loadbtn");
+					showElement("minutesago");	
+				}
+				else {
+					
+					showElement("datespecific");
+					hideElement("loadbtn");
+					hideElement("minutesago");	
+			
+				}
+			}
 
 			function recalculateSlider() {
 				slidertext.innerHTML = "<" + ((parseInt(slider.max) - parseInt(slider.value)) * 15).toString() + " minutes ago";
@@ -185,6 +233,20 @@
 
 			changeRange('50');
 
+			function hideElement(elementId) {
+			  const element = document.getElementById(elementId);
+			  if (element) {
+			    element.style.display = 'none';
+			  }
+			}
+
+
+			function showElement(elementId) {
+			  const element = document.getElementById(elementId);
+			  if (element) {
+			    element.style.display = 'block';
+			  }
+			}
 		</script>
     	</body>
 </html>
