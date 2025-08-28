@@ -90,11 +90,17 @@
 			sdate.max = strdate;
 			sdate.value = strdate;
 			let edate = document.getElementById("enddate");
+			edate.min = strdate;
 			edate.max = strdate;
 			edate.value = strdate;
 	
 			subbtn = document.getElementById("datesubmit");
-			
+		
+			//this will keep end date from being smaller than start date
+			sdate.addEventListener('input', function () {
+				edate.min = this.value;
+			});
+
 			var date_ssec;
 			var date_esec;
 			subbtn.addEventListener("click", function () {
