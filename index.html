@@ -11,11 +11,11 @@
 			<div id="menu" style="width: 100%; background-color: #FFFFFF;">
 				<div class="dateradio">
 					<label>
-						<input type="radio" name="date" value="recent"  > Use most recent images
+						<input type="radio" name="date" value="recent" checked="checked" > Use most recent images
 					</label><br>
 
 					<label>
-						<input type="radio" name="date" value="date" checked="checked" > Select date(s) to display 
+						<input type="radio" name="date" value="date"  > Select date(s) to display 
 					</label><br>
 				</div>
 
@@ -28,7 +28,7 @@
 					<input type="date" id="enddate" name="end" min="2025-05-26" />
 					<br>
 
-					<button type=button id="dateloadbtn" style="width: 250px; height: 50px; font-size: 20px;"> Load Selection </button>
+					<button type=button id="datesubmit" style="width: 250px; height: 50px; font-size: 20px;"> Load Selection </button>
 				</div>
 
 				<div class="slidecontainer" >
@@ -52,6 +52,9 @@
 			<a href="https://github.com/Joel-Hecht/Black_Diamond_Webcam_Monitor"> github page </a>
 
 		<script>
+			//0 = recent mode, 1 = date selection mode
+			var OP_MODE  = 0;
+
 			var slider = document.getElementById("snapsrange");
 			var slidertext = document.getElementById("stext");
 			var timetext = document.getElementById("timetxt");
@@ -73,20 +76,69 @@
 				});
 			});
 
+			//date selection stuff
+			let date = new Date();
+			let strdate = date.toISOString().slice(0,10);
+			let sdate = document.getElementById("startdate");
+			sdate.max = strdate;
+			sdate.value = strdate;
+			let edate = document.getElementById("enddate");
+			edate.max = strdate;
+			edate.value = strdate;
+	
+			subbtn = document.getElementById("datesubmit");
+			
+			var date_ssec;
+			var date_esec;
+			subbtn.addEventListener("click", function () {
+				let s = sdate.value;
+				let e = edate.value;
+				let ed = new Date(e);
+				let sd = new Date(s);
+				
+				const day_seconds = 86400;
+				const mdt_conversion_factor = 21600;
+
+				let sseconds = Math.floor(sd.getTime() / 1000);
+				let eseconds = Math.floor(ed.getTime() / 1000);
+				
+				//because we want this at the END of the day
+				eseconds= eseconds + day_seconds;
+
+				date_ssec = sseconds + mdt_conversion_factor;
+				date_esec = eseconds + mdt_conversion_factor;
+
+				console.log(sseconds);
+				console.log(eseconds);
+
+				loadDateRange();	
+			});
+	
+	
+			//default functionality
+
 			slider.oninput = recalculateSlider;
 
 			function changeMode(value) {
+
+				//reset all cached images
+				//images = [];
+
 				if (value === "recent") {
+					OP_MODE = 0;
 					hideElement("datespecific");
 					showElement("loadbtn");
 					showElement("minutesago");	
+					
+					//var nextmax = 99999999999999999; 
+					//reset to default 50 img veiw
+					//changeRange('50');
 				}
 				else {
-					
+					OP_MODE = 1;
 					showElement("datespecific");
 					hideElement("loadbtn");
 					hideElement("minutesago");	
-			
 				}
 			}
 
@@ -121,7 +173,20 @@
 
 			async function fetchJSONData(count) {
 			    var obj;
-				var jsonlink= "https://proxy.catboyjoel.com/get?url=" + "https://volcview.wr.usgs.gov/ashcam-api/imageApi/webcam/ys-bbsn/0/" + nextmax + "/newestFirst/" + count.toString();
+				
+				var webcam_sec_start;
+				var webcam_sec_end;
+				var image_limit;
+				if (OP_MODE == 0) {
+					 //recent mode 
+					webcam_sec_start = 0;
+					webcam_sec_end = nextmax;
+				} else {
+					webcam_sec_start = date_ssec
+					webcam_sec_end=date_esec;
+
+				}
+				var jsonlink= "https://proxy.catboyjoel.com/get?url=" + "https://volcview.wr.usgs.gov/ashcam-api/imageApi/webcam/ys-bbsn/" + webcam_sec_start.toString() + "/" + webcam_sec_end.toString() + "/newestFirst/" + count.toString();
 				console.log(jsonlink);
 				await fetch( jsonlink , { 
 					//prevent caching here because it will not update with latest json
@@ -168,8 +233,35 @@
 				console.log("new range: " + thisadd);
 				
 				let fetchlist = await fetchJSONData(thisadd);
+				
+				addAndCacheImages(thisadd, fetchlist);
 
-				let jsonlist = []
+				//loading another 50 wil pick up where this one left off
+				nextmax = (images[0][0] - 1).toString();
+				console.log("nextmax: " + nextmax);
+			}
+
+			async function loadDateRange() {			
+				images = [];
+
+				//max of 1024 loaded images.  Should reasonably not need more than 100 or you are using it wrong
+				let fetchlist = await fetchJSONData(1024);
+
+				//not going to deal with caching past images - just assume none of them are already loaded
+				let imgs_loaded = fetchlist.length;
+				
+				console.log("images loaded: " + imgs_loaded.toString());
+
+
+				slider.max = imgs_loaded;
+				slider.value = imgs_loaded;
+
+				addAndCacheImages(imgs_loaded, fetchlist);
+			}
+
+			async function addAndCacheImages(thisadd, fetchlist) {
+
+				let jsonlist = [];
 				for(let i = 0; i < thisadd ; i++) {
 					let n = [];
 					n.push(fetchlist[i]["imageTimestamp"]);
@@ -195,10 +287,6 @@
 
 				recalculateSlider();
 
-				//loading another 50 wil pick up where this one left off
-				nextmax = (images[0][0] - 1).toString();
-				console.log("nextmax: " + nextmax);
-
 			}
 
 			function addValue(v) {
@@ -219,11 +307,11 @@
 
 
 			let button = document.getElementsByTagName('button');
-			button[0].addEventListener('click', function () {
+			button[1].addEventListener('click', function () {
 				addValue(-1);
 			})
 
-			button[1].addEventListener('click', function () {
+			button[2].addEventListener('click', function () {
 				addValue(1);
 			})
 			
@@ -247,6 +335,7 @@
 			    element.style.display = 'block';
 			  }
 			}
+	
 		</script>
     	</body>
 </html>
