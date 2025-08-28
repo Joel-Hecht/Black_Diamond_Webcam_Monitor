@@ -76,9 +76,16 @@
 				});
 			});
 
+				
+			const day_seconds = 86400;
+			const mdt_conversion_factor = 21600;
+
 			//date selection stuff
 			let date = new Date();
+			//convert to mdt
+			date.setSeconds(date.getSeconds() - mdt_conversion_factor);
 			let strdate = date.toISOString().slice(0,10);
+			console.log(strdate);
 			let sdate = document.getElementById("startdate");
 			sdate.max = strdate;
 			sdate.value = strdate;
@@ -95,9 +102,6 @@
 				let e = edate.value;
 				let ed = new Date(e);
 				let sd = new Date(s);
-				
-				const day_seconds = 86400;
-				const mdt_conversion_factor = 21600;
 
 				let sseconds = Math.floor(sd.getTime() / 1000);
 				let eseconds = Math.floor(ed.getTime() / 1000);
@@ -119,6 +123,10 @@
 
 			slider.oninput = recalculateSlider;
 
+			var cached_images;
+			var cached_slidermax;
+			var cached_nextmax;
+
 			function changeMode(value) {
 
 				//reset all cached images
@@ -133,12 +141,21 @@
 					//var nextmax = 99999999999999999; 
 					//reset to default 50 img veiw
 					//changeRange('50');
+					images = cached_images;
+					slider.max = cached_slidermax;
+					slider.value = slider.max;
+					nextmax = cached_nextmax;
+					recalculateSlider();
 				}
 				else {
 					OP_MODE = 1;
 					showElement("datespecific");
 					hideElement("loadbtn");
 					hideElement("minutesago");	
+
+					cached_images = images;
+					cached_slidermax = slider.max;
+					cached_nextmax = nextmax;
 				}
 			}
 
@@ -231,10 +248,10 @@
 				slider.value = range;
 
 				console.log("new range: " + thisadd);
-				
+
 				let fetchlist = await fetchJSONData(thisadd);
-				
-				addAndCacheImages(thisadd, fetchlist);
+
+				await addAndCacheImages(thisadd, fetchlist);
 
 				//loading another 50 wil pick up where this one left off
 				nextmax = (images[0][0] - 1).toString();
@@ -256,7 +273,7 @@
 				slider.max = imgs_loaded;
 				slider.value = imgs_loaded;
 
-				addAndCacheImages(imgs_loaded, fetchlist);
+				await addAndCacheImages(imgs_loaded, fetchlist);
 			}
 
 			async function addAndCacheImages(thisadd, fetchlist) {
